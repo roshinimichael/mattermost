@@ -37,8 +37,15 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: skyramp/testbot@ad482bb135143d3ef9ff45323e25e82ae4af4031 # v0.9.1
+      - name: Run Skyramp Testbot
+        id: testbot
+        uses: letsramp/testbot@roshinimichael/install-workflow-sut # v0.10.0
         with:
           skyrampLicenseFile: ${{ secrets.SKYRAMP_LICENSE_FILE }}
           anthropicApiKey: ${{ secrets.SKYRAMP_TESTBOT_API_KEY }}
           githubToken: ${{ steps.app-token.outputs.token }}
+          skyrampMcpSource: github
+          skyrampMcpGithubRef: roshinimichael/install-workflow-sut
+          skyrampMcpGithubToken: ${{ secrets.PAT_TOKEN }}
+          sutSetupMode: adapt_workflow
+          sutSourceWorkflowFile: .github/workflows/e2e-tests-playwright-template.yml
