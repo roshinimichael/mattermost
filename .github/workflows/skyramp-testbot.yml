@@ -45,7 +45,7 @@ jobs:
           anthropicApiKey: ${{ secrets.SKYRAMP_TESTBOT_API_KEY }}
           githubToken: ${{ steps.skyramp-testbot-app-token.outputs.token }}
           skyrampMcpVersion: next
-          sutSetupMode: adapt_workflow
+          sutSetupMode: 'none'
           sutSourceWorkflowFile: .github/workflows/e2e-tests-playwright-template.yml
           targetSetupCommand: >-
             cd e2e-tests &&

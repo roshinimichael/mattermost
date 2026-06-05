@@ -1,0 +1,32 @@
+# Skyramp Workspace Configuration
+workspace:
+  repoName: roshinimichael/mattermost
+  repoUrl: https://github.com/roshinimichael/mattermost
+metadata:
+  schemaVersion: v1
+  mcpVersion: 0.2.150-rc.sut
+  executorVersion: v1.3.25
+  createdAt: "2026-06-05T03:25:10.245Z"
+  updatedAt: "2026-06-05T03:25:10.252Z"
+services:
+  - serviceName: mattermost-server-backend
+    language: python
+    framework: pytest
+    testDirectory: tests/skyramp/server
+    api:
+      authType: bearer
+      authHeader: Authorization
+      baseUrl: http://localhost:8065
+    runtimeDetails:
+      serverStartCommand: make run-server
+      runtime: local
+  - serviceName: mattermost-e2e-playwright
+    language: typescript
+    framework: playwright
+    testDirectory: e2e-tests/playwright/specs
+    api:
+      authType: bearer
+      authHeader: Authorization
+      baseUrl: http://localhost:8065
+    runtimeDetails:
+      runtime: local
