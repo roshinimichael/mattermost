@@ -16,11 +16,13 @@ jobs:
     if: >-
       github.event_name == 'pull_request' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@skyramp-testbot') && github.event.comment.user.login != 'skyramp-testbot[bot]')
-    runs-on: 'ubuntu-latest'
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
       checks: write
+    env:
+      MM_LICENSE: ${{ secrets.MM_LICENSE }}
 
     steps:
       # Generate a GitHub App installation token to retrigger CI workflows on push
@@ -45,3 +47,20 @@ jobs:
           skyrampMcpVersion: next
           sutSetupMode: adapt_workflow
           sutSourceWorkflowFile: .github/workflows/e2e-tests-playwright-template.yml
+          targetSetupCommand: >-
+            cd e2e-tests &&
+            SERVER_IMAGE=mattermostdevelopment/mattermost-enterprise-edition:master
+            ENABLED_DOCKER_SERVICES="postgres inbucket"
+            SERVER=onprem
+            TEST=none
+            make start-server
+          targetReadyCheckCommand: curl -sf http://localhost:8065/api/v4/system/ping
+          targetReadyCheckTimeout: '300'
+          targetTeardownCommand: >-
+            cd e2e-tests &&
+            ENABLED_DOCKER_SERVICES="postgres inbucket"
+            SERVER=onprem
+            TEST=none
+            make stop-server
+          authTokenCommand: bash .skyramp/sut/get-auth-token.sh
+          uiCredentials: sysadmin:Sys@dmin-sample1
