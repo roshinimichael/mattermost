@@ -87,7 +87,7 @@ jobs:
           anthropicApiKey: ${{ secrets.SKYRAMP_TESTBOT_API_KEY }}
           githubToken: ${{ steps.app-token.outputs.token }}
           skyrampMcpVersion: next
-          sutSetupMode: adapt_workflow
+          sutSetupMode: 'none'
           sutSourceWorkflowFile: .github/workflows/e2e-tests-playwright-template.yml
           skipTargetSetup: 'true'
           targetReadyCheckCommand: curl -sf http://localhost:8065/api/v4/system/ping
