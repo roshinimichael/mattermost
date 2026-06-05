@@ -2,7 +2,7 @@ name: Skyramp Testbot
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]
 
@@ -39,13 +39,11 @@ jobs:
 
       - name: Run Skyramp Testbot
         id: testbot
-        uses: letsramp/testbot@roshinimichael/install-workflow-sut # v0.10.0
+        uses: skyramp/testbot@eval-sut # v0.10.3
         with:
           skyrampLicenseFile: ${{ secrets.SKYRAMP_LICENSE_FILE }}
           anthropicApiKey: ${{ secrets.SKYRAMP_TESTBOT_API_KEY }}
           githubToken: ${{ steps.app-token.outputs.token }}
-          skyrampMcpSource: github
-          skyrampMcpGithubRef: roshinimichael/install-workflow-sut
-          skyrampMcpGithubToken: ${{ secrets.PAT_TOKEN }}
+          skyrampMcpVersion: next
           sutSetupMode: adapt_workflow
           sutSourceWorkflowFile: .github/workflows/e2e-tests-playwright-template.yml
