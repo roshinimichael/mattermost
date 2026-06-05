@@ -1,0 +1,68 @@
+# Skyramp Testbot SUT — builds Mattermost from PR source and starts sidecar services.
+# Run from the repository root:
+#   docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml up -d --build
+
+services:
+  server:
+    build:
+      # Build context is the repository root (two levels up from this file)
+      context: ../..
+      dockerfile: .skyramp/sut/Dockerfile
+    image: mattermost-sut:pr-build
+    network_mode: host
+    restart: "no"
+    environment:
+      MM_SQLSETTINGS_DATASOURCE: "postgres://mmuser:mostest@localhost:5432/mattermost_test?sslmode=disable&connect_timeout=10&binary_parameters=yes"
+      MM_SQLSETTINGS_DRIVERNAME: "postgres"
+      MM_EMAILSETTINGS_SMTPSERVER: "localhost"
+      MM_EMAILSETTINGS_SMTPPORT: "10025"
+      MM_SERVICESETTINGS_SITEURL: "http://localhost:8065"
+      MM_SERVICESETTINGS_ALLOWCORSFROM: "*"
+      MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
+      MM_SERVICESETTINGS_ENABLESECURITYFIXALERT: "false"
+      MM_TEAMSSETTINGS_ENABLEOPENSERVER: "true"
+      MM_PLUGINSETTINGS_ENABLE: "true"
+      MM_PLUGINSETTINGS_ENABLEUPLOADS: "true"
+      MM_PLUGINSETTINGS_AUTOMATICPREPACKAGEDPLUGINS: "true"
+      MM_LOGSETTINGS_CONSOLELEVEL: "INFO"
+      MM_LOGSETTINGS_ENABLEDIAGNOSTICS: "false"
+      MM_SERVICEENVIRONMENT: "test"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inbucket:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8065/api/v4/system/ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 18
+      start_period: 30s
+
+  postgres:
+    image: postgres:14
+    network_mode: host
+    restart: "no"
+    environment:
+      POSTGRES_USER: mmuser
+      POSTGRES_PASSWORD: mostest
+      POSTGRES_DB: mattermost_test
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "mmuser"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+
+  inbucket:
+    image: inbucket/inbucket:3.1.1
+    network_mode: host
+    restart: "no"
+    environment:
+      INBUCKET_WEB_ADDR: "0.0.0.0:9001"
+      INBUCKET_POP3_ADDR: "0.0.0.0:10110"
+      INBUCKET_SMTP_ADDR: "0.0.0.0:10025"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-w1", "127.0.0.1", "10025"]
+      interval: 10s
+      timeout: 15s
+      retries: 12
