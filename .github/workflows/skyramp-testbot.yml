@@ -16,7 +16,7 @@ jobs:
     if: >-
       github.event_name == 'pull_request' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@skyramp-testbot') && github.event.comment.user.login != 'skyramp-testbot[bot]')
-    runs-on: 'ubuntu-latest'
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
@@ -37,6 +37,48 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
+      # Pattern C: GHA steps bring up the SUT from PR source; Testbot handles lifecycle validation
+      # and teardown. Building from source (Go compilation) takes ~10-20 min on a standard runner.
+      - name: ci/build-server-image
+        run: |
+          docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml build
+
+      - name: ci/start-sut
+        run: |
+          docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml up -d
+
+      - name: ci/wait-and-configure
+        run: |
+          echo "Waiting for Mattermost server to become healthy..."
+          MAX_ATTEMPTS=60
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if curl -sf http://localhost:8065/api/v4/system/ping > /dev/null 2>&1; then
+              echo "Server is healthy after attempt $i"
+              break
+            fi
+            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+              echo "ERROR: Mattermost did not become healthy in time" >&2
+              docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml logs server
+              exit 1
+            fi
+            echo "Attempt $i/$MAX_ATTEMPTS: not ready yet, waiting 10s..."
+            sleep 10
+          done
+
+          echo "Creating sysadmin user via mmctl --local..."
+          docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml exec -T server \
+            mmctl --local user create \
+              --email sysadmin@sample.mattermost.com \
+              --username sysadmin \
+              --password 'Sys@dmin-sample1' \
+              --system-admin || true
+
+          echo "Configuring server settings via mmctl --local..."
+          docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml exec -T server \
+            mmctl --local config set TeamSettings.EnableOpenServer true || true
+
+          echo "SUT is ready for testing."
+
       - name: Run Skyramp Testbot
         id: testbot
         uses: skyramp/testbot@eval-sut # v0.10.3
@@ -47,3 +89,9 @@ jobs:
           skyrampMcpVersion: next
           sutSetupMode: adapt_workflow
           sutSourceWorkflowFile: .github/workflows/e2e-tests-playwright-template.yml
+          skipTargetSetup: 'true'
+          targetReadyCheckCommand: curl -sf http://localhost:8065/api/v4/system/ping
+          targetReadyCheckTimeout: '60'
+          targetTeardownCommand: docker compose -p mattermost-sut -f .skyramp/sut/docker-compose.yml down -v --remove-orphans
+          authTokenCommand: bash .skyramp/sut/get-auth-token.sh
+          uiCredentials: sysadmin:Sys@dmin-sample1
