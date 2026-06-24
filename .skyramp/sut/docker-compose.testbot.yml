@@ -1,0 +1,73 @@
+# Mattermost SUT for Skyramp Testbot — builds server from PR source.
+# Run with: docker compose -f .skyramp/sut/docker-compose.testbot.yml --project-directory . up -d --build
+# All paths below are resolved relative to the repo root (--project-directory .).
+
+services:
+  postgres:
+    image: mattermostdevelopment/mirrored-postgres:14
+    restart: "no"
+    network_mode: host
+    environment:
+      POSTGRES_USER: mmuser
+      POSTGRES_PASSWORD: mostest
+      POSTGRES_DB: mattermost_test
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    volumes:
+      - ./server/build/docker/postgres.conf:/etc/postgresql/postgresql.conf:Z
+      - ./server/build/docker/postgres_node_database.sql:/docker-entrypoint-initdb.d/postgres_node_database.sql:Z
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "mmuser"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+
+  inbucket:
+    image: inbucket/inbucket:3.1.1
+    restart: "no"
+    network_mode: host
+    environment:
+      INBUCKET_WEB_ADDR: "0.0.0.0:9001"
+      INBUCKET_POP3_ADDR: "0.0.0.0:10110"
+      INBUCKET_SMTP_ADDR: "0.0.0.0:10025"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-w1", "127.0.0.1", "10025"]
+      interval: 10s
+      timeout: 15s
+      retries: 12
+
+  server:
+    build:
+      context: server
+      dockerfile: build/Dockerfile.buildenv
+    working_dir: /home/mattermost-server/server
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: "postgres"
+      MM_SQLSETTINGS_DATASOURCE: "postgres://mmuser:mostest@localhost:5432/mattermost_test?sslmode=disable&connect_timeout=10"
+      MM_NO_DOCKER: "true"
+      RUN_SERVER_IN_BACKGROUND: "false"
+      MM_SERVICESETTINGS_SITEURL: "http://localhost:8065"
+      MM_SERVICESETTINGS_ALLOWCORSFROM: "*"
+      MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
+      MM_SERVICESETTINGS_ENABLESECURITYFIXALERT: "false"
+      MM_CONNECTEDWORKSPACESSETTINGS_ENABLEREMOTECLUSTERSERVICE: "true"
+      MM_FEATUREFLAGS_MOVETHREADSENABLED: "true"
+      MM_EMAILSETTINGS_SMTPSERVER: "localhost"
+      MM_EMAILSETTINGS_SMTPPORT: "10025"
+      MM_LOGSETTINGS_CONSOLELEVEL: "INFO"
+    network_mode: host
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inbucket:
+        condition: service_healthy
+    volumes:
+      - ./:/home/mattermost-server
+    command: ["make", "run-server"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8065/api/v4/system/ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 60
+      start_period: 15m
+    restart: on-failure
