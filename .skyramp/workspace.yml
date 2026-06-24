@@ -1,0 +1,33 @@
+# Skyramp Workspace Configuration
+workspace:
+  repoName: roshinimichael/mattermost
+  repoUrl: https://github.com/roshinimichael/mattermost
+metadata:
+  schemaVersion: v1
+  mcpVersion: 0.2.150-rc.mntnc
+  executorVersion: v1.3.28
+  createdAt: "2026-06-24T18:21:59.489Z"
+  updatedAt: "2026-06-24T18:21:59.496Z"
+services:
+  - serviceName: mattermost-server-backend
+    language: typescript
+    framework: playwright
+    testDirectory: tests/skyramp/server
+    api:
+      authType: bearer
+      authHeader: Authorization
+      baseUrl: http://localhost:8065
+    runtimeDetails:
+      serverStartCommand: docker compose -f .skyramp/sut/docker-compose.testbot.yml --project-directory . up -d server
+      runtime: docker
+  - serviceName: mattermost-webapp-frontend
+    language: typescript
+    framework: playwright
+    testDirectory: tests/skyramp/webapp
+    api:
+      authType: cookie
+      authHeader: Cookie
+      baseUrl: http://localhost:8065
+    runtimeDetails:
+      serverStartCommand: docker compose -f .skyramp/sut/docker-compose.testbot.yml --project-directory . up -d server
+      runtime: docker
