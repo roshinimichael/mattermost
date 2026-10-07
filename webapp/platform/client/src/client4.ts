@@ -4569,6 +4569,10 @@ export default class Client4 {
         );
     };
 
+    getServerTime = () => {
+        return this.doFetch<{time: number}>(`${this.getSystemRoute()}/time`, {method: 'get'});
+    };
+
     getAppliedSchemaMigrations = () => {
         return this.doFetch<SchemaMigration[]>(
             `${this.getSystemRoute()}/schema/version`,

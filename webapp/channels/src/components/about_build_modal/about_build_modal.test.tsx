@@ -48,6 +48,7 @@ describe('components/AboutBuildModal', () => {
 
         // Mock the license load metric API call for all tests to prevent errors
         jest.spyOn(Client4, 'getLicenseLoadMetric').mockResolvedValue({load: 0});
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now()}));
 
         config = {
             BuildEnterpriseReady: 'true',
@@ -249,6 +250,24 @@ describe('components/AboutBuildModal', () => {
         });
 
         expect(screen.getByTestId('aboutModalVersionInfo')).not.toHaveTextContent('Load Metric:');
+    });
+
+    test('should warn when the device clock differs from the server by a minute or more', async () => {
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now() - (5 * 60 * 1000)}));
+
+        renderAboutBuildModal();
+
+        expect(await screen.findByTestId('aboutModalClockSkew')).toHaveTextContent('differs from the server\'s by 300 seconds');
+    });
+
+    test('should not warn when the device clock matches the server', async () => {
+        renderAboutBuildModal();
+
+        await waitFor(() => {
+            expect(Client4.getServerTime).toHaveBeenCalled();
+        });
+
+        expect(screen.queryByTestId('aboutModalClockSkew')).not.toBeInTheDocument();
     });
 
     test('should handle API errors gracefully', async () => {

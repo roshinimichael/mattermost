@@ -42,6 +42,7 @@ func (api *API) InitSystem() {
 	api.BaseRoutes.System.Handle("/ping", api.APIHandler(getSystemPing)).Methods(http.MethodGet)
 
 	api.BaseRoutes.System.Handle("/timezones", api.APISessionRequired(getSupportedTimezones)).Methods(http.MethodGet)
+	api.BaseRoutes.System.Handle("/time", api.APISessionRequired(getServerTime)).Methods(http.MethodGet)
 
 	api.BaseRoutes.APIRoot.Handle("/audits", api.APISessionRequired(getAudits)).Methods(http.MethodGet)
 	api.BaseRoutes.APIRoot.Handle("/notifications/test", api.APISessionRequired(testNotifications)).Methods(http.MethodPost)
@@ -539,6 +540,12 @@ func getLatestVersion(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := w.Write(b); err != nil {
+		c.Logger.Warn("Error while writing response", mlog.Err(err))
+	}
+}
+
+func getServerTime(c *Context, w http.ResponseWriter, r *http.Request) {
+	if err := json.NewEncoder(w).Encode(model.ServerTime{Time: model.GetMillis()}); err != nil {
 		c.Logger.Warn("Error while writing response", mlog.Err(err))
 	}
 }
