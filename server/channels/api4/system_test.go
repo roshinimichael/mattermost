@@ -715,6 +715,26 @@ func TestSupportedTimezones(t *testing.T) {
 	assert.Equal(t, supportedTimezonesFromConfig, supportedTimezones)
 }
 
+func TestGetServerTime(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t)
+	client := th.Client
+
+	before := model.GetMillis()
+	serverTime, _, err := client.GetServerTime(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, serverTime)
+	assert.GreaterOrEqual(t, serverTime.Time, before)
+	assert.LessOrEqual(t, serverTime.Time, model.GetMillis())
+
+	_, err = client.Logout(context.Background())
+	require.NoError(t, err)
+
+	_, resp, err := client.GetServerTime(context.Background())
+	require.Error(t, err)
+	CheckUnauthorizedStatus(t, resp)
+}
+
 func TestRedirectLocation(t *testing.T) {
 	mainHelper.Parallel(t)
 	expected := "https://mattermost.com/wp-content/themes/mattermostv2/img/logo-light.svg"

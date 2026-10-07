@@ -1,5 +1,6 @@
 {
   "about.buildnumber": "Build Number:",
+  "about.clockSkew": "Your device's clock differs from the server's by {seconds, number} seconds. Times shown in messages may be off.",
   "about.cloudEdition": "Cloud",
   "about.copyright": "Copyright 2015 - {currentYear} Mattermost, Inc. All rights reserved",
   "about.database": "Database:",
