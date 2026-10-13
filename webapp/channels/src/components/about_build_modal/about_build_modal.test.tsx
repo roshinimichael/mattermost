@@ -260,6 +260,14 @@ describe('components/AboutBuildModal', () => {
         expect(await screen.findByTestId('aboutModalClockSkew')).toHaveTextContent('differs from the server\'s by 300 seconds');
     });
 
+    test('should warn when the device clock differs from the server by exactly a minute', async () => {
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now() - (60 * 1000)}));
+
+        renderAboutBuildModal();
+
+        expect(await screen.findByTestId('aboutModalClockSkew')).toHaveTextContent('differs from the server\'s by 60 seconds');
+    });
+
     test('should not warn when the device clock matches the server', async () => {
         renderAboutBuildModal();
 
