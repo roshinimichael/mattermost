@@ -26,6 +26,15 @@ func getDefaultPostgresqlDSN() string {
 	if os.Getenv("IS_CI") == "true" {
 		return strings.ReplaceAll(defaultPostgresqlDSN, "localhost", "postgres")
 	}
+	// The development database takes its password from MM_DB_PASSWORD.
+	if password := os.Getenv("MM_DB_PASSWORD"); password != "" {
+		dsnURL, err := url.Parse(defaultPostgresqlDSN)
+		if err != nil {
+			panic("failed to parse dsn " + defaultPostgresqlDSN + ": " + err.Error())
+		}
+		dsnURL.User = url.UserPassword(dsnURL.User.Username(), password)
+		return dsnURL.String()
+	}
 	return defaultPostgresqlDSN
 }
 

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -1054,10 +1055,15 @@ func TestDatabaseStoreString(t *testing.T) {
 	require.NotNil(t, ds)
 	defer ds.Close()
 
+	dsnURL, err := url.Parse(*mainHelper.GetSQLSettings().DataSource)
+	require.NoError(t, err)
+	password, ok := dsnURL.User.Password()
+	require.True(t, ok)
+
 	maskedDSN := ds.String()
 	assert.True(t, strings.HasPrefix(maskedDSN, "postgres://"))
 	assert.False(t, strings.Contains(maskedDSN, "mmuser"))
-	assert.False(t, strings.Contains(maskedDSN, "mostest"))
+	assert.False(t, strings.Contains(maskedDSN, password))
 }
 
 func TestCleanUp(t *testing.T) {
