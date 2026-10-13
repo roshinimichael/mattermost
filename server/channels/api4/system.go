@@ -545,6 +545,8 @@ func getLatestVersion(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func getServerTime(c *Context, w http.ResponseWriter, r *http.Request) {
+	// A cached time is a stale one: the client would measure its skew against it.
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	if err := json.NewEncoder(w).Encode(model.ServerTime{Time: model.GetMillis()}); err != nil {
 		c.Logger.Warn("Error while writing response", mlog.Err(err))
 	}

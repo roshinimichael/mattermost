@@ -721,16 +721,17 @@ func TestGetServerTime(t *testing.T) {
 	client := th.Client
 
 	before := model.GetMillis()
-	serverTime, _, err := client.GetServerTime(context.Background())
+	serverTime, resp, err := client.GetServerTime(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, serverTime)
+	assert.Contains(t, resp.Header.Get("Cache-Control"), "no-store")
 	assert.GreaterOrEqual(t, serverTime.Time, before)
 	assert.LessOrEqual(t, serverTime.Time, model.GetMillis())
 
 	_, err = client.Logout(context.Background())
 	require.NoError(t, err)
 
-	_, resp, err := client.GetServerTime(context.Background())
+	_, resp, err = client.GetServerTime(context.Background())
 	require.Error(t, err)
 	CheckUnauthorizedStatus(t, resp)
 }

@@ -97,13 +97,13 @@ type LogEntry struct {
 	Level     string
 }
 
-// SystemPingOptions is the options for setting contents of the system ping
-// response.
 // ServerTime is the server's current time, in milliseconds since the Unix epoch.
 type ServerTime struct {
 	Time int64 `json:"time"`
 }
 
+// SystemPingOptions is the options for setting contents of the system ping
+// response.
 type SystemPingOptions struct {
 	// FullStatus allows server to set the detailed information about
 	// the system status.
