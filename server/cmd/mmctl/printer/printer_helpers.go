@@ -23,6 +23,9 @@ var (
 
 	// otherEscRegex matches other escape sequences (APC, PM, single-char).
 	otherEscRegex = regexp.MustCompile(`\x1b[_^X]([^\x1b]|\x1b[^\\])*\x1b\\|\x1b[^\[\]P0-9]`)
+
+	// c1CsiRegex matches CSI sequences introduced by the single C1 character U+009B.
+	c1CsiRegex = regexp.MustCompile(`\x{9b}[0-9;?]*[A-Za-z]`)
 )
 
 // SanitizeForTerminal strips ANSI escape sequences and control characters from
@@ -41,7 +44,10 @@ func SanitizeForTerminal(s string) string {
 	// Remove other escape sequences
 	result = otherEscRegex.ReplaceAllString(result, "")
 
-	// Remove remaining control characters (0x00-0x1F, 0x7F) except tab, newline, carriage return.
+	// Remove C1 CSI sequences
+	result = c1CsiRegex.ReplaceAllString(result, "")
+
+	// Remove remaining control characters (0x00-0x1F, 0x7F, C1 0x80-0x9F) except tab, newline, carriage return.
 	var cleaned strings.Builder
 	cleaned.Grow(len(result))
 	for _, r := range result {
@@ -49,7 +55,7 @@ func SanitizeForTerminal(s string) string {
 		case r == '\t' || r == '\n' || r == '\r':
 			// Keep whitespace
 			cleaned.WriteRune(r)
-		case r < 0x20 || r == 0x7F:
+		case r < 0x20 || r == 0x7F || (r >= 0x80 && r <= 0x9F):
 			// Skip control characters
 			continue
 		default:

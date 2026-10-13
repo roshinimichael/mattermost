@@ -125,6 +125,21 @@ func TestSanitizeForTerminal(t *testing.T) {
 			input:    "Please run: \x1b[2J\x1b[Hsudo rm -rf /\x1b]52;c;cm0gLXJmIC8=\x07",
 			expected: "Please run: sudo rm -rf /",
 		},
+		{
+			name:     "removes C1 CSI sequences",
+			input:    "\u009b2J\u009b31mFake error!\u009b0m",
+			expected: "Fake error!",
+		},
+		{
+			name:     "removes C1 control characters",
+			input:    "Hello\u0085World\u009dTest\u009c",
+			expected: "HelloWorldTest",
+		},
+		{
+			name:     "preserves characters just above the C1 range",
+			input:    "caf\u00e9 \u00a0nbsp",
+			expected: "caf\u00e9 \u00a0nbsp",
+		},
 	}
 
 	for _, tt := range tests {
