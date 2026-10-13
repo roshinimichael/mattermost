@@ -1,0 +1,31 @@
+name: mmctl printer unit tests
+on:
+  pull_request:
+    paths:
+      - "server/cmd/mmctl/printer/**"
+      - ".github/workflows/mmctl-printer-unit-tests.yml"
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: mmctl-printer-unit-tests
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout mattermost project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Run the mmctl printer unit tests
+        run: go test -v ./cmd/mmctl/printer/...
