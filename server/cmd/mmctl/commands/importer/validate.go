@@ -1107,10 +1107,17 @@ func validateNotNil[T any](info ImportFileInfo, name string, value *T, then func
 	return nil
 }
 
+// findFileNameSuffix returns the archive's files whose path ends with name at a
+// path segment, so "a.png" suggests "other/a.png" but never "other/aa.png".
 func (v *Validator) findFileNameSuffix(name string) []string {
+	name = strings.TrimPrefix(utils.NormalizeFilename(name), "/")
+	if name == "" {
+		return nil
+	}
+
 	var candidates []string
 	for _, fileName := range v.allFileNames {
-		if strings.HasSuffix(fileName, name) {
+		if fileName == name || strings.HasSuffix(fileName, "/"+name) {
 			candidates = append(candidates, fileName)
 		}
 	}
