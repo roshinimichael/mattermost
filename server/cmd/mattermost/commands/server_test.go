@@ -60,6 +60,10 @@ func TestRunServerSuccess(t *testing.T) {
 	th := SetupServerTest(t)
 	defer th.TearDownServerTest()
 
+	// A server with no account starts only with its admin's credentials.
+	t.Setenv(adminUsernameEnv, "sysadmin")
+	t.Setenv(adminPasswordEnv, "Sys@dmin-sample1")
+
 	configStore := config.NewTestMemoryStore()
 
 	// Use non-default listening port in case another server instance is already running.
@@ -75,6 +79,10 @@ func TestRunServerSuccess(t *testing.T) {
 func TestRunServerSystemdNotification(t *testing.T) {
 	th := SetupServerTest(t)
 	defer th.TearDownServerTest()
+
+	// A server with no account starts only with its admin's credentials.
+	t.Setenv(adminUsernameEnv, "sysadmin")
+	t.Setenv(adminPasswordEnv, "Sys@dmin-sample1")
 
 	// Get a random temporary filename for using as a mock systemd socket
 	socketFile, err := os.CreateTemp("", "mattermost-systemd-mock-socket-")
@@ -127,6 +135,10 @@ func TestRunServerSystemdNotification(t *testing.T) {
 func TestRunServerNoSystemd(t *testing.T) {
 	th := SetupServerTest(t)
 	defer th.TearDownServerTest()
+
+	// A server with no account starts only with its admin's credentials.
+	t.Setenv(adminUsernameEnv, "sysadmin")
+	t.Setenv(adminPasswordEnv, "Sys@dmin-sample1")
 
 	// Temporarily remove any Systemd socket defined in the environment
 	// t.Setenv prevents t.Parallel — env var has no config equivalent
