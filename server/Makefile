@@ -247,9 +247,6 @@ ifneq ($(IS_CI),false)
 else ifeq ($(MM_NO_DOCKER),true)
 	@echo No Docker Enabled: skipping docker start
 else
-ifndef MM_DB_PASSWORD
-	$(error MM_DB_PASSWORD is not set: the development database takes its password from that secret)
-endif
 	@echo Starting docker containers
 ifeq ($(MM_USE_PGVECTOR),true)
 	@echo Using pgvector PostgreSQL image
@@ -599,8 +596,6 @@ validate-go-version: ## Validates the installed version of go against Mattermost
 build-templates: ## Compile all mjml email templates
 	cd $(TEMPLATES_DIR) && $(MAKE) build
 
-# The server reaches the development database with the password from MM_DB_PASSWORD.
-run-server: export MM_SQLSETTINGS_DATASOURCE ?= postgres://mmuser:$(MM_DB_PASSWORD)@localhost/mattermost_test?sslmode=disable&connect_timeout=10&binary_parameters=yes
 run-server: setup-go-work prepackaged-binaries validate-go-version start-docker client ## Starts the server.
 	@echo Running mattermost for development
 ifeq ($(MM_USE_PGVECTOR),true)
