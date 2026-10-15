@@ -321,8 +321,14 @@ func (p Printer) printBytes(b []byte, opts printOpts) error {
 	return c.Wait()
 }
 
+// printErrors prints each error line, naming the server it came from when
+// mmctl is connected to one.
 func (p Printer) printErrors() {
 	for i := range printer.ErrorLines {
+		if printer.serverAddress != "" {
+			fmt.Fprintf(printer.eWriter, "%s: %s\n", printer.serverAddress, printer.ErrorLines[i])
+			continue
+		}
 		fmt.Fprintln(printer.eWriter, printer.ErrorLines[i])
 	}
 }
