@@ -33,6 +33,12 @@ func termHeight(file *os.File) (int, error) {
 	return h, nil
 }
 
+// lineCount returns how many lines b takes on the terminal, including a last
+// line that does not end in a newline.
 func lineCount(b []byte) int {
-	return bytes.Count(b, []byte{'\n'})
+	n := bytes.Count(b, []byte{'\n'})
+	if len(b) > 0 && b[len(b)-1] != '\n' {
+		n++
+	}
+	return n
 }
