@@ -1287,12 +1287,15 @@ func autocompleteUsers(c *Context, w http.ResponseWriter, r *http.Request) {
 	channelId := r.URL.Query().Get("in_channel")
 	teamId := r.URL.Query().Get("in_team")
 	name := r.URL.Query().Get("name")
-	limitStr := r.URL.Query().Get("limit")
-	limit, _ := strconv.Atoi(limitStr)
-	if limitStr == "" {
-		limit = model.UserSearchDefaultLimit
-	} else if limit > model.UserSearchMaxLimit {
-		limit = model.UserSearchMaxLimit
+	limit := model.UserSearchDefaultLimit
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		var err error
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil || limit < 1 {
+			c.SetInvalidURLParam("limit")
+			return
+		}
+		limit = min(limit, model.UserSearchMaxLimit)
 	}
 
 	options := &model.UserSearchOptions{
