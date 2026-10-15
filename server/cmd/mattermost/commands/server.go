@@ -107,6 +107,11 @@ func runServer(configStore *config.Store, interruptChan chan os.Signal) error {
 		return err
 	}
 
+	if err = bootstrapAdmin(server); err != nil {
+		mlog.Error(err.Error())
+		return err
+	}
+
 	notifyReady()
 
 	// Wiping off any signal handlers set before.

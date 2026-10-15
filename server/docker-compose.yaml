@@ -3,6 +3,9 @@ services:
     container_name: mattermost-postgres
     ports:
       - "5432:5432"
+    # The development database's password is a secret: set MM_DB_PASSWORD (no default).
+    environment:
+      POSTGRES_PASSWORD: ${MM_DB_PASSWORD:?MM_DB_PASSWORD is not set - the development database takes its password from that secret}
     extends:
         file: build/docker-compose.common.yml
         service: postgres
