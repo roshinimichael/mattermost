@@ -12,6 +12,10 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
+// mmctl's commands take a Client and are given a *model.Client4: this fails to
+// compile when Client4 stops providing a method a command calls.
+var _ Client = (*model.Client4)(nil)
+
 type Client interface {
 	CreateChannel(ctx context.Context, channel *model.Channel) (*model.Channel, *model.Response, error)
 	RemoveUserFromChannel(ctx context.Context, channelID, userID string) (*model.Response, error)
