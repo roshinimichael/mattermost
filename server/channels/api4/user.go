@@ -1291,6 +1291,10 @@ func autocompleteUsers(c *Context, w http.ResponseWriter, r *http.Request) {
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		var err error
 		limit, err = strconv.Atoi(limitStr)
+		if errors.Is(err, strconv.ErrRange) && limit > 0 {
+			// Too large for an int: Atoi returns the largest int, which is capped below.
+			err = nil
+		}
 		if err != nil || limit < 1 {
 			c.SetInvalidURLParam("limit")
 			return
