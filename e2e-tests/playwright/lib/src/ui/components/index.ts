@@ -27,6 +27,7 @@ import FindChannelsModal from './channels/find_channels_modal';
 import NewChannelModal from './channels/new_channel_modal';
 import FlagPostConfirmationDialog from './channels/flag_post_confirmation_dialog';
 import GenericConfirmModal from './channels/generic_confirm_modal';
+import AboutModal from './channels/about_modal';
 import InvitePeopleModal from './channels/invite_people_modal';
 import MembersInvitedModal from './channels/members_invited_modal';
 import MessagePriority from './channels/message_priority';
@@ -96,6 +97,7 @@ const components = {
     NewChannelModal,
     BrowseChannelsModal,
     GenericConfirmModal,
+    AboutModal,
     InvitePeopleModal,
     MembersInvitedModal,
     MessagePriority,
@@ -173,6 +175,7 @@ export {
     NewChannelModal,
     BrowseChannelsModal,
     GenericConfirmModal,
+    AboutModal,
     InvitePeopleModal,
     MembersInvitedModal,
     MessagePriority,

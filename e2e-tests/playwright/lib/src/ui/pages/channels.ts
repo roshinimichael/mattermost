@@ -36,6 +36,7 @@ export default class ChannelsPage {
     readonly createTeamForm;
     readonly deletePostModal;
     readonly findChannelsModal;
+    readonly aboutModal;
     readonly newChannelModal;
     readonly browseChannelsModal;
     public invitePeopleModal: InvitePeopleModal | undefined;
@@ -75,6 +76,7 @@ export default class ChannelsPage {
         this.createTeamForm = new CreateTeamForm(page.locator('.signup-team__container'));
         this.deletePostModal = new components.DeletePostModal(page.locator('#deletePostModal'));
         this.findChannelsModal = new components.FindChannelsModal(page.getByRole('dialog', {name: 'Find Channels'}));
+        this.aboutModal = new components.AboutModal(page.getByRole('dialog', {name: 'About Mattermost'}));
         this.newChannelModal = new NewChannelModal(page.getByRole('dialog', {name: 'Create a new channel'}));
         this.browseChannelsModal = new BrowseChannelsModal(page.getByRole('dialog', {name: 'Browse Channels'}));
         this.profileModal = new components.ProfileModal(page.getByRole('dialog', {name: 'Profile'}));
