@@ -45,10 +45,13 @@ type Props = {
     socketStatus: SocketStatus;
 };
 
+const CLOCK_SKEW_WARNING_SECONDS = 60;
+
 export default function AboutBuildModal(props: Props) {
     const intl = useIntl();
     const [show, setShow] = useState(true);
     const [loadMetric, setLoadMetric] = useState<number | null>(0);
+    const [clockSkewSeconds, setClockSkewSeconds] = useState(0);
 
     useEffect(() => {
         const fetchLoadMetric = async () => {
@@ -64,6 +67,22 @@ export default function AboutBuildModal(props: Props) {
         };
 
         fetchLoadMetric();
+    }, []);
+
+    useEffect(() => {
+        const fetchClockSkew = async () => {
+            try {
+                const sentAt = Date.now();
+                const {time} = await Client4.getServerTime();
+                const localTime = (sentAt + Date.now()) / 2;
+                setClockSkewSeconds(Math.round((localTime - time) / 1000));
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Error fetching server time:', e);
+            }
+        };
+
+        fetchClockSkew();
     }, []);
 
     const doHide = () => {
@@ -364,6 +383,15 @@ export default function AboutBuildModal(props: Props) {
                                 />
                             </div>
                             {serverHostname}
+                            {Math.abs(clockSkewSeconds) >= CLOCK_SKEW_WARNING_SECONDS && (
+                                <div data-testid='aboutModalClockSkew'>
+                                    <FormattedMessage
+                                        id='about.clockSkew'
+                                        defaultMessage="Your device's clock differs from the server's by {seconds, number} seconds. Times shown in messages may be off."
+                                        values={{seconds: Math.abs(clockSkewSeconds)}}
+                                    />
+                                </div>
+                            )}
                         </div>
                         {licensee}
                     </div>

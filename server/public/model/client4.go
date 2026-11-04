@@ -6204,6 +6204,16 @@ func (c *Client4) GetSupportedTimezone(ctx context.Context) ([]string, *Response
 	return DecodeJSONFromResponse[[]string](r)
 }
 
+// GetServerTime returns the server's current time, so a client can tell how far its own clock is from it.
+func (c *Client4) GetServerTime(ctx context.Context) (*ServerTime, *Response, error) {
+	r, err := c.doAPIGet(ctx, c.systemRoute().Join("time"), "")
+	if err != nil {
+		return nil, BuildResponse(r), err
+	}
+	defer closeBody(r)
+	return DecodeJSONFromResponse[*ServerTime](r)
+}
+
 // Jobs Section
 
 // GetJob gets a single job.
