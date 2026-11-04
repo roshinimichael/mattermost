@@ -736,6 +736,26 @@ func TestGetServerTime(t *testing.T) {
 	CheckUnauthorizedStatus(t, resp)
 }
 
+func TestGetServerTimeIsFreshOnEachRequest(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t)
+	client := th.Client
+
+	first, _, err := client.GetServerTime(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, first)
+	mid := model.GetMillis()
+
+	time.Sleep(1100 * time.Millisecond)
+
+	second, resp, err := client.GetServerTime(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, second)
+	assert.Contains(t, resp.Header.Get("Cache-Control"), "no-store")
+	assert.GreaterOrEqual(t, second.Time, mid, "second response must not be a cached time from before the first response")
+	assert.Greater(t, second.Time, first.Time)
+}
+
 func TestRedirectLocation(t *testing.T) {
 	mainHelper.Parallel(t)
 	expected := "https://mattermost.com/wp-content/themes/mattermostv2/img/logo-light.svg"

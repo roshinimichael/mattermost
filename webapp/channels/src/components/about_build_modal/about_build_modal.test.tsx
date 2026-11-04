@@ -9,7 +9,7 @@ import {Client4} from 'mattermost-redux/client';
 
 import AboutBuildModal from 'components/about_build_modal/about_build_modal';
 
-import {renderWithContext, screen, userEvent, waitFor} from 'tests/react_testing_utils';
+import {act, renderWithContext, screen, userEvent, waitFor} from 'tests/react_testing_utils';
 import {AboutLinks} from 'utils/constants';
 
 import AboutBuildModalCloud from './about_build_modal_cloud/about_build_modal_cloud';
@@ -268,6 +268,68 @@ describe('components/AboutBuildModal', () => {
         });
 
         expect(screen.queryByTestId('aboutModalClockSkew')).not.toBeInTheDocument();
+    });
+
+    test('should warn with a positive number of seconds when the device clock is behind the server', async () => {
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now() + (5 * 60 * 1000)}));
+
+        renderAboutBuildModal();
+
+        const warning = await screen.findByTestId('aboutModalClockSkew');
+        expect(warning).toHaveTextContent('Your device\'s clock differs from the server\'s by 300 seconds. Times shown in messages may be off.');
+        expect(warning).not.toHaveTextContent('-');
+    });
+
+    test.each([
+        ['ahead of', -59000],
+        ['behind', 59000],
+    ])('should not warn when the device clock is 59 seconds %s the server', async (_label, offset) => {
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now() + offset}));
+
+        renderAboutBuildModal();
+
+        await waitFor(() => {
+            expect(Client4.getServerTime).toHaveBeenCalled();
+        });
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        expect(screen.queryByTestId('aboutModalClockSkew')).not.toBeInTheDocument();
+        expect(screen.getByTestId('aboutModalVersionInfo')).toHaveTextContent('Server Version: 3.6.0');
+    });
+
+    test('should warn when the device clock differs from the server by exactly one minute', async () => {
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now() - 60000}));
+
+        renderAboutBuildModal();
+
+        expect(await screen.findByTestId('aboutModalClockSkew')).toHaveTextContent('differs from the server\'s by 60 seconds');
+    });
+
+    test('should not warn and still render version info when the server time request fails', async () => {
+        console.error = jest.fn();
+        jest.spyOn(Client4, 'getServerTime').mockRejectedValue(new Error('API error'));
+
+        renderAboutBuildModal();
+
+        await waitFor(() => {
+            expect(Client4.getServerTime).toHaveBeenCalled();
+        });
+        await waitFor(() => {
+            expect(console.error).toHaveBeenCalledWith('Error fetching server time:', expect.any(Error));
+        });
+
+        expect(screen.queryByTestId('aboutModalClockSkew')).not.toBeInTheDocument();
+        expect(screen.getByTestId('aboutModalVersionInfo')).toHaveTextContent('Server Version: 3.6.0');
+    });
+
+    test('should format a large clock difference as a grouped number', async () => {
+        jest.spyOn(Client4, 'getServerTime').mockImplementation(async () => ({time: Date.now() + 3600000}));
+
+        renderAboutBuildModal();
+
+        expect(await screen.findByTestId('aboutModalClockSkew')).toHaveTextContent('differs from the server\'s by 3,600 seconds');
     });
 
     test('should handle API errors gracefully', async () => {

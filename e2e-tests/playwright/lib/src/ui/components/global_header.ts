@@ -39,6 +39,16 @@ export default class GlobalHeader {
         await this.container.getByRole('link', {name}).click();
     }
 
+    async openAboutModal() {
+        const aboutItem = this.channelsPage.page.getByRole('menuitem', {name: 'About Mattermost'});
+        // The menu button may not respond until the header has finished rendering, so retry opening it.
+        await expect(async () => {
+            await this.productSwitchMenu.click({force: true});
+            await expect(aboutItem).toBeVisible({timeout: 2000});
+        }).toPass({timeout: 20000});
+        await aboutItem.click();
+    }
+
     async openSettings() {
         await expect(this.settingsButton).toBeVisible();
         await this.settingsButton.click();
