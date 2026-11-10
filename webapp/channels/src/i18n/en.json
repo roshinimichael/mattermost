@@ -18,6 +18,7 @@
   "about.privacy": "Privacy Policy",
   "about.serverDisconnected": "disconnected",
   "about.serverHostname": "Hostname:",
+  "about.serverStarted": "Server started:",
   "about.serverUnknown": "server did not provide hostname",
   "about.serverVersion": "Server Version:",
   "about.teamEditionLearn": "Join the Mattermost community at ",

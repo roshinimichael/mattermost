@@ -134,6 +134,11 @@ func (ps *PlatformService) SetInstallTypeOverride(v string) {
 	ps.installTypeOverride = v
 }
 
+// StartTime returns when this server process started.
+func (ps *PlatformService) StartTime() time.Time {
+	return ps.startTime
+}
+
 // SetLogRootPathOverride sets the log root path override for log file validation.
 func (ps *PlatformService) SetLogRootPathOverride(v string) {
 	ps.logRootPathOverride = v
