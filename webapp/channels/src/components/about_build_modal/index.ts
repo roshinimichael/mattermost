@@ -4,6 +4,7 @@
 import {connect} from 'react-redux';
 
 import {getConfig, getLicense} from 'mattermost-redux/selectors/entities/general';
+import {isCurrentUserSystemAdmin} from 'mattermost-redux/selectors/entities/users';
 
 import {getSocketStatus} from 'selectors/views/websocket';
 
@@ -16,6 +17,7 @@ function mapStateToProps(state: GlobalState) {
         config: getConfig(state),
         license: getLicense(state),
         socketStatus: getSocketStatus(state),
+        isSystemAdmin: isCurrentUserSystemAdmin(state),
     };
 }
 

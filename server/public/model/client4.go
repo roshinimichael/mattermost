@@ -6204,6 +6204,16 @@ func (c *Client4) GetSupportedTimezone(ctx context.Context) ([]string, *Response
 	return DecodeJSONFromResponse[[]string](r)
 }
 
+// GetServerStartTime returns when the server process started. Only a system admin may ask.
+func (c *Client4) GetServerStartTime(ctx context.Context) (*ServerStartTime, *Response, error) {
+	r, err := c.doAPIGet(ctx, c.systemRoute().Join("start_time"), "")
+	if err != nil {
+		return nil, BuildResponse(r), err
+	}
+	defer closeBody(r)
+	return DecodeJSONFromResponse[*ServerStartTime](r)
+}
+
 // Jobs Section
 
 // GetJob gets a single job.

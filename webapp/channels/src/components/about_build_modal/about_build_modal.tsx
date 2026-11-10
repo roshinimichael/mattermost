@@ -43,12 +43,18 @@ type Props = {
     license: ClientLicense;
 
     socketStatus: SocketStatus;
+
+    /**
+     * Whether the current user is a system admin, who alone is shown when the server started
+     */
+    isSystemAdmin?: boolean;
 };
 
 export default function AboutBuildModal(props: Props) {
     const intl = useIntl();
     const [show, setShow] = useState(true);
     const [loadMetric, setLoadMetric] = useState<number | null>(0);
+    const [serverStartedAt, setServerStartedAt] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchLoadMetric = async () => {
@@ -65,6 +71,24 @@ export default function AboutBuildModal(props: Props) {
 
         fetchLoadMetric();
     }, []);
+
+    useEffect(() => {
+        if (!props.isSystemAdmin) {
+            return;
+        }
+
+        const fetchServerStartTime = async () => {
+            try {
+                const {started_at: startedAt} = await Client4.getServerStartTime();
+                setServerStartedAt(startedAt);
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('Error fetching server start time:', e);
+            }
+        };
+
+        fetchServerStartTime();
+    }, [props.isSystemAdmin]);
 
     const doHide = () => {
         setShow(false);
@@ -364,6 +388,18 @@ export default function AboutBuildModal(props: Props) {
                                 />
                             </div>
                             {serverHostname}
+                            {serverStartedAt !== null && (
+                                <div data-testid='aboutModalServerStarted'>
+                                    <FormattedMessage
+                                        id='about.serverStarted'
+                                        defaultMessage='Server started:'
+                                    />
+                                    <Nbsp/>
+                                    {intl.formatDate(serverStartedAt, {year: 'numeric', month: 'short', day: '2-digit'})}
+                                    {' - '}
+                                    {intl.formatTime(serverStartedAt, {hour: '2-digit', minute: '2-digit'})}
+                                </div>
+                            )}
                         </div>
                         {licensee}
                     </div>
