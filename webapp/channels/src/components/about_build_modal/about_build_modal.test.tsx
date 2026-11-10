@@ -7,6 +7,7 @@ import type {ClientConfig, ClientLicense} from '@mattermost/types/config';
 
 import {Client4} from 'mattermost-redux/client';
 
+import ConnectedAboutBuildModal from 'components/about_build_modal';
 import AboutBuildModal from 'components/about_build_modal/about_build_modal';
 
 import {renderWithContext, screen, userEvent, waitFor} from 'tests/react_testing_utils';
@@ -302,6 +303,96 @@ describe('components/AboutBuildModal', () => {
 
         expect(screen.getByTestId('aboutModalVersionInfo')).toHaveTextContent('Server Version: 3.6.0');
         expect(screen.getByTestId('aboutModalVersionInfo')).not.toHaveTextContent('(FIPS)');
+    });
+
+    describe('server start time', () => {
+        const startedAt = () => new RealDate(2017, 6, 1, 9, 30).getTime();
+
+        test('should show when the server started to a system admin', async () => {
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt()});
+
+            renderAboutBuildModal({isSystemAdmin: true});
+
+            const line = await screen.findByTestId('aboutModalServerStarted');
+            expect(line).toBeVisible();
+            expect(line.textContent).toMatch(/^Server started:\s/);
+            expect(line).toHaveTextContent('Jul 01, 2017');
+            expect(line).toHaveTextContent(' - ');
+            expect(line).toHaveTextContent('09:30 AM');
+            expect(getServerStartTime).toHaveBeenCalledTimes(1);
+        });
+
+        test('should show the server started line under the hostname', async () => {
+            jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt()});
+
+            renderAboutBuildModal({isSystemAdmin: true});
+
+            const line = await screen.findByTestId('aboutModalServerStarted');
+            const hostname = screen.getByText('Hostname:', {exact: false});
+            expect(hostname.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(hostname.parentElement).toBe(line.parentElement);
+        });
+
+        test('should still render the rest of the dialog without the line when the start time request fails', async () => {
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockRejectedValue(new Error('x'));
+
+            renderAboutBuildModal({isSystemAdmin: true});
+
+            await waitFor(() => expect(getServerStartTime).toHaveBeenCalledTimes(1));
+            await waitFor(() => expect(Client4.getLicenseLoadMetric).toHaveBeenCalled());
+            expect(screen.queryByTestId('aboutModalServerStarted')).not.toBeInTheDocument();
+            expect(screen.queryByText('Server started:', {exact: false})).not.toBeInTheDocument();
+            expect(screen.getByTestId('aboutModalVersionInfo')).toHaveTextContent('Server Version: 3.6.0');
+            expect(screen.getByText('Hostname: mock.localhost', {exact: false})).toBeInTheDocument();
+        });
+
+        test.each([
+            ['false', false],
+            ['undefined', undefined],
+        ])('should not show the line or request the start time when isSystemAdmin is %s', async (_, isSystemAdmin) => {
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt()});
+
+            renderAboutBuildModal({isSystemAdmin});
+
+            await waitFor(() => expect(Client4.getLicenseLoadMetric).toHaveBeenCalled());
+            expect(screen.getByText('Hostname: mock.localhost', {exact: false})).toBeInTheDocument();
+            expect(screen.queryByTestId('aboutModalServerStarted')).not.toBeInTheDocument();
+            expect(screen.queryByText('Server started:', {exact: false})).not.toBeInTheDocument();
+            expect(getServerStartTime).not.toHaveBeenCalled();
+        });
+
+        test.each([
+            ['system_user system_admin', true],
+            ['system_user', false],
+        ])('connected modal for a user with roles "%s" shows the start time: %s', async (roles, shown) => {
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt()});
+
+            const state = {
+                entities: {
+                    general: {config, license},
+                    users: {
+                        currentUserId: 'current_user_id',
+                        profiles: {
+                            current_user_id: {id: 'current_user_id', roles},
+                        },
+                    },
+                },
+                websocket: socketStatus,
+            };
+
+            renderWithContext(<ConnectedAboutBuildModal onExited={jest.fn()}/>, state as any);
+
+            await waitFor(() => expect(Client4.getLicenseLoadMetric).toHaveBeenCalled());
+            if (shown) {
+                expect(await screen.findByTestId('aboutModalServerStarted')).toHaveTextContent('Server started:');
+                expect(getServerStartTime).toHaveBeenCalledTimes(1);
+            } else {
+                expect(screen.getByText('Hostname:', {exact: false})).toBeInTheDocument();
+                expect(screen.queryByTestId('aboutModalServerStarted')).not.toBeInTheDocument();
+                expect(getServerStartTime).not.toHaveBeenCalled();
+            }
+        });
     });
 
     function renderAboutBuildModal(props = {}) {

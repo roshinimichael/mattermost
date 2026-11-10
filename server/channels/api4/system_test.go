@@ -728,6 +728,84 @@ func TestGetServerStartTime(t *testing.T) {
 	CheckForbiddenStatus(t, resp)
 }
 
+func TestGetServerStartTimeWithoutSession(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	t.Run("no token", func(t *testing.T) {
+		client := th.CreateClient()
+		startTime, resp, err := client.GetServerStartTime(context.Background())
+		require.Error(t, err)
+		CheckUnauthorizedStatus(t, resp)
+		assert.Nil(t, startTime)
+	})
+
+	t.Run("invalid token", func(t *testing.T) {
+		client := th.CreateClient()
+		client.SetToken(model.NewId())
+		startTime, resp, err := client.GetServerStartTime(context.Background())
+		require.Error(t, err)
+		CheckUnauthorizedStatus(t, resp)
+		assert.Nil(t, startTime)
+	})
+
+	t.Run("token after logout", func(t *testing.T) {
+		client := th.CreateClient()
+		_, _, err := client.Login(context.Background(), th.SystemAdminUser.Username, th.SystemAdminUser.Password)
+		require.NoError(t, err)
+		token := client.AuthToken
+		_, err = client.Logout(context.Background())
+		require.NoError(t, err)
+
+		client.SetToken(token)
+		startTime, resp, err := client.GetServerStartTime(context.Background())
+		require.Error(t, err)
+		CheckUnauthorizedStatus(t, resp)
+		assert.Nil(t, startTime)
+	})
+}
+
+func TestGetServerStartTimeOtherRolesForbidden(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	checkForbidden := func(t *testing.T) {
+		t.Helper()
+		startTime, resp, err := th.Client.GetServerStartTime(context.Background())
+		require.Error(t, err)
+		CheckForbiddenStatus(t, resp)
+		assert.Nil(t, startTime)
+	}
+
+	t.Run("team admin", func(t *testing.T) {
+		th.UpdateUserToTeamAdmin(t, th.BasicUser, th.BasicTeam)
+		checkForbidden(t)
+	})
+
+	for _, role := range []string{model.SystemUserManagerRoleId, model.SystemReadOnlyAdminRoleId} {
+		t.Run(role, func(t *testing.T) {
+			_, appErr := th.App.UpdateUserRoles(th.Context, th.BasicUser.Id, model.SystemUserRoleId+" "+role, false)
+			require.Nil(t, appErr)
+			checkForbidden(t)
+		})
+	}
+}
+
+func TestGetServerStartTimeOnlyGetIsRouted(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t)
+
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
+		t.Run(method, func(t *testing.T) {
+			resp, err := th.SystemAdminClient.DoAPIRequestWithHeaders(context.Background(), method, "/system/start_time", "", nil)
+			require.Error(t, err)
+			require.NotNil(t, resp)
+			assert.Contains(t, []int{http.StatusNotFound, http.StatusMethodNotAllowed}, resp.StatusCode)
+			assert.NotContains(t, err.Error(), "started_at")
+		})
+	}
+}
+
 func TestRedirectLocation(t *testing.T) {
 	mainHelper.Parallel(t)
 	expected := "https://mattermost.com/wp-content/themes/mattermostv2/img/logo-light.svg"

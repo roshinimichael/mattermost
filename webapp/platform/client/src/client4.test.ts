@@ -163,6 +163,22 @@ describe('Client4', () => {
             expect(result[2]).toEqual({user_id: 'dummy-user-id', channel_id: 'channel3', roles: 'channel_user'});
         });
     });
+
+    describe('getServerStartTime', () => {
+        test('should send GET to the system start_time route and resolve the start time', async () => {
+            const client = new Client4();
+            client.setUrl('http://mattermost.example.com');
+
+            const scope = nock('http://mattermost.example.com').
+                get('/api/v4/system/start_time').
+                reply(200, {started_at: 123});
+
+            const result = await client.getServerStartTime();
+
+            expect(result).toEqual({started_at: 123});
+            expect(scope.isDone()).toBe(true);
+        });
+    });
 });
 
 describe('ClientError', () => {
