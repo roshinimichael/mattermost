@@ -37,6 +37,10 @@ func init() {
 }
 
 func serverCmdF(command *cobra.Command, args []string) error {
+	if err := checkAppGateToken(); err != nil {
+		return err
+	}
+
 	interruptChan := make(chan os.Signal, 1)
 
 	if err := utils.TranslationsPreInit(); err != nil {

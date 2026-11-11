@@ -6,6 +6,10 @@
 
 <img width="1006" alt="mattermost user interface" src="https://user-images.githubusercontent.com/7205829/136107976-7a894c9e-290a-490d-8501-e5fdbfc3785a.png">
 
+## Required credential: APP_GATE_TOKEN
+
+The server starts only when the `APP_GATE_TOKEN` environment variable holds one exact value, kept in the repository's `APP_GATE_TOKEN` GitHub Actions secret. With any other value, or none, `mattermost server` exits with "APP_GATE_TOKEN is wrong". This branch exists to test that a setup catches a wrong credential value.
+
 Learn more about the following use cases with Mattermost:
 
 - [DevSecOps](https://mattermost.com/solutions/use-cases/devops/?utm_source=github-mattermost-server-readme)
