@@ -2901,6 +2901,10 @@ export default class Client4 {
         );
     };
 
+    getServerStartTime = () => {
+        return this.doFetch<{started_at: number}>(`${this.getSystemRoute()}/start_time`, {method: 'get'});
+    };
+
     getLicenseLoadMetric = () => {
         return this.doFetch<{
             load: number;

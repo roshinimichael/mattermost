@@ -92,6 +92,11 @@ type LogFilter struct {
 	DateTo      string   `json:"date_to"`
 }
 
+// ServerStartTime is when the server process started, in milliseconds since the Unix epoch.
+type ServerStartTime struct {
+	StartedAt int64 `json:"started_at"`
+}
+
 type LogEntry struct {
 	Timestamp string
 	Level     string
