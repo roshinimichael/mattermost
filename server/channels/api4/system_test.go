@@ -728,6 +728,159 @@ func TestGetServerStartTime(t *testing.T) {
 	CheckForbiddenStatus(t, resp)
 }
 
+func TestGetServerStartTimeResponseIsMilliseconds(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	r, err := th.SystemAdminClient.DoAPIGet(context.Background(), "/system/start_time", "")
+	require.NoError(t, err)
+	defer r.Body.Close()
+	require.Equal(t, http.StatusOK, r.StatusCode)
+	receivedAt := time.Now().UnixMilli()
+
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+	require.Contains(t, body, "started_at")
+	startedAt, ok := body["started_at"].(float64)
+	require.True(t, ok, "started_at should be a JSON number, got %T", body["started_at"])
+	assert.Equal(t, float64(int64(startedAt)), startedAt, "started_at should be a whole number")
+	assert.Greater(t, startedAt, float64(1e12), "started_at should be in milliseconds")
+
+	assert.Greater(t, int64(startedAt), int64(0))
+	assert.LessOrEqual(t, int64(startedAt), receivedAt)
+	assert.Equal(t, th.App.Srv().Platform().StartTime().UnixMilli(), int64(startedAt))
+}
+
+func TestGetServerStartTimeIsStableAcrossCalls(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	firstRequestAt := time.Now().UnixMilli()
+	first, _, err := th.SystemAdminClient.GetServerStartTime(context.Background())
+	require.NoError(t, err)
+
+	time.Sleep(1100 * time.Millisecond)
+
+	second, _, err := th.SystemAdminClient.GetServerStartTime(context.Background())
+	require.NoError(t, err)
+
+	assert.Equal(t, first.StartedAt, second.StartedAt)
+	assert.Less(t, first.StartedAt, firstRequestAt)
+}
+
+func TestGetServerStartTimeWithoutSession(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	client := th.CreateClient()
+	startTime, resp, err := client.GetServerStartTime(context.Background())
+	require.Error(t, err)
+	CheckUnauthorizedStatus(t, resp)
+	CheckErrorID(t, err, "api.context.session_expired.app_error")
+	assert.Nil(t, startTime)
+}
+
+func TestGetServerStartTimeForbiddenWithoutManageSystem(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	checkForbidden := func(t *testing.T, client *model.Client4) {
+		t.Helper()
+		startTime, resp, err := client.GetServerStartTime(context.Background())
+		require.Error(t, err)
+		CheckForbiddenStatus(t, resp)
+		CheckErrorID(t, err, "api.context.permissions.app_error")
+		assert.Nil(t, startTime)
+	}
+
+	loginWithRoles := func(t *testing.T, roles string) *model.Client4 {
+		t.Helper()
+		user := th.CreateUser(t)
+		_, appErr := th.App.UpdateUserRoles(th.Context, user.Id, roles, false)
+		require.Nil(t, appErr)
+		client := th.CreateClient()
+		_, _, err := client.Login(context.Background(), user.Email, user.Password)
+		require.NoError(t, err)
+		return client
+	}
+
+	t.Run("regular user", func(t *testing.T) {
+		checkForbidden(t, th.Client)
+	})
+
+	t.Run("guest", func(t *testing.T) {
+		th.App.Srv().SetLicense(model.NewTestLicense("guests"))
+		th.App.UpdateConfig(func(cfg *model.Config) { *cfg.GuestAccountsSettings.Enable = true })
+		_, guestClient := th.CreateGuestAndClient(t)
+		checkForbidden(t, guestClient)
+	})
+
+	t.Run("team admin", func(t *testing.T) {
+		th.UpdateUserToTeamAdmin(t, th.TeamAdminUser, th.BasicTeam)
+		client := th.CreateClient()
+		th.LoginTeamAdminWithClient(t, client)
+		checkForbidden(t, client)
+	})
+
+	t.Run("system user manager", func(t *testing.T) {
+		checkForbidden(t, loginWithRoles(t, model.SystemUserRoleId+" "+model.SystemUserManagerRoleId))
+	})
+
+	t.Run("system read only admin", func(t *testing.T) {
+		checkForbidden(t, loginWithRoles(t, model.SystemUserRoleId+" "+model.SystemReadOnlyAdminRoleId))
+	})
+}
+
+func TestGetServerStartTimeFollowsManageSystemPermission(t *testing.T) {
+	th := Setup(t).InitBasic(t)
+
+	user := th.CreateUser(t)
+	_, appErr := th.App.UpdateUserRoles(th.Context, user.Id, model.SystemUserRoleId+" "+model.SystemUserManagerRoleId, false)
+	require.Nil(t, appErr)
+	client := th.CreateClient()
+	_, _, err := client.Login(context.Background(), user.Email, user.Password)
+	require.NoError(t, err)
+
+	_, resp, err := client.GetServerStartTime(context.Background())
+	require.Error(t, err)
+	CheckForbiddenStatus(t, resp)
+
+	th.AddPermissionToRole(t, model.PermissionManageSystem.Id, model.SystemUserManagerRoleId)
+	defer th.RemovePermissionFromRole(t, model.PermissionManageSystem.Id, model.SystemUserManagerRoleId)
+
+	startTime, resp, err := client.GetServerStartTime(context.Background())
+	require.NoError(t, err)
+	CheckOKStatus(t, resp)
+	assert.Equal(t, th.App.Srv().Platform().StartTime().UnixMilli(), startTime.StartedAt)
+
+	th.RemovePermissionFromRole(t, model.PermissionManageSystem.Id, model.SystemUserManagerRoleId)
+
+	_, resp, err = client.GetServerStartTime(context.Background())
+	require.Error(t, err)
+	CheckForbiddenStatus(t, resp)
+}
+
+func TestGetServerStartTimeOnlyRoutesGet(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t).InitBasic(t)
+
+	neighbour, neighbourErr := th.SystemAdminClient.DoAPIPost(context.Background(), "/system/timezones", "{}")
+	require.Error(t, neighbourErr)
+	require.NotNil(t, neighbour)
+
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete} {
+		t.Run(method, func(t *testing.T) {
+			r, err := th.SystemAdminClient.DoAPIRequestWithHeaders(context.Background(), method, "/system/start_time", "{}", nil)
+			require.Error(t, err)
+			require.NotNil(t, r)
+			assert.Equal(t, http.StatusNotFound, r.StatusCode)
+			assert.Equal(t, neighbour.StatusCode, r.StatusCode)
+			CheckErrorID(t, err, "api.context.404.app_error")
+			CheckErrorID(t, neighbourErr, "api.context.404.app_error")
+		})
+	}
+}
+
 func TestRedirectLocation(t *testing.T) {
 	mainHelper.Parallel(t)
 	expected := "https://mattermost.com/wp-content/themes/mattermostv2/img/logo-light.svg"
