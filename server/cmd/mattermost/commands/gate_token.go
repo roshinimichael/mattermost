@@ -13,7 +13,7 @@ import (
 
 // appGateTokenHash is the SHA-256 of the one APP_GATE_TOKEN value the server starts with. It is here to test that
 // Testbot's setup catches a wrong credential value: with any other value, or none, the server refuses to start.
-const appGateTokenHash = "a00623bc8bc3045b6b820c590547a9f66ee57f29d50469ec87a1e57f931541f0"
+const appGateTokenHash = "a58fd06feb77b5e922de40281a184e4f71954defdc818535cea2105f2ef0ed74"
 
 // checkAppGateToken refuses to start the server unless APP_GATE_TOKEN holds the value whose hash is appGateTokenHash.
 func checkAppGateToken() error {
