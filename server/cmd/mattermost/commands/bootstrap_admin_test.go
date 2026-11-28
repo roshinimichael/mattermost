@@ -15,15 +15,20 @@ func TestAdminFromEnv(t *testing.T) {
 		return func(k string) string { return vars[k] }
 	}
 
-	t.Run("refuses to start without the credentials", func(t *testing.T) {
+	t.Run("creates no admin without the credentials", func(t *testing.T) {
+		admin, err := adminFromEnv(env(map[string]string{}))
+		require.NoError(t, err)
+		assert.Nil(t, admin)
+	})
+
+	t.Run("refuses to start with only one of them", func(t *testing.T) {
 		for _, vars := range []map[string]string{
-			{},
 			{adminUsernameEnv: "sysadmin"},
 			{adminPasswordEnv: "Sys-admin-1"},
 		} {
 			_, err := adminFromEnv(env(vars))
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "set MM_ADMIN_USERNAME and MM_ADMIN_PASSWORD")
+			assert.Contains(t, err.Error(), "set both MM_ADMIN_USERNAME and MM_ADMIN_PASSWORD")
 		}
 	})
 

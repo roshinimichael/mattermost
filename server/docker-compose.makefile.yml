@@ -6,9 +6,9 @@ services:
       - "5432:5432"
     volumes:
      - "postgres-14-data:/var/lib/postgresql/data"
-    # The development database's password is a secret: set MM_DB_PASSWORD (no default).
+    # The development database's password: MM_DB_PASSWORD, else mostest.
     environment:
-      POSTGRES_PASSWORD: ${MM_DB_PASSWORD:?MM_DB_PASSWORD is not set - the development database takes its password from that secret}
+      POSTGRES_PASSWORD: ${MM_DB_PASSWORD:-mostest}
     extends:
         file: build/docker-compose.common.yml
         service: postgres
