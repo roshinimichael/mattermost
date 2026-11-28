@@ -63,6 +63,13 @@ func runServer(configStore *config.Store, interruptChan chan os.Signal) error {
 	// and also preserve a crash dump for later investigation.
 	debug.SetTraceback("crash")
 
+	siteURL, err := publicURL(os.Getenv)
+	if err != nil {
+		mlog.Error(err.Error())
+		return err
+	}
+	mlog.Info("Serving at " + siteURL)
+
 	options := []app.Option{
 		// The option order is important as app.Config option reads app.StartMetrics option.
 		app.StartMetrics,
