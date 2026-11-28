@@ -728,6 +728,18 @@ func TestGetServerStartTime(t *testing.T) {
 	CheckForbiddenStatus(t, resp)
 }
 
+func TestGetServerStartTimeSignedOut(t *testing.T) {
+	mainHelper.Parallel(t)
+	th := Setup(t)
+
+	client := th.CreateClient()
+	startTime, resp, err := client.GetServerStartTime(context.Background())
+	require.Error(t, err)
+	CheckUnauthorizedStatus(t, resp)
+	assert.Nil(t, startTime)
+	CheckErrorID(t, err, "api.context.session_expired.app_error")
+}
+
 func TestRedirectLocation(t *testing.T) {
 	mainHelper.Parallel(t)
 	expected := "https://mattermost.com/wp-content/themes/mattermostv2/img/logo-light.svg"

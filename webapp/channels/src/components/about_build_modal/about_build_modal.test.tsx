@@ -304,6 +304,68 @@ describe('components/AboutBuildModal', () => {
         expect(screen.getByTestId('aboutModalVersionInfo')).not.toHaveTextContent('(FIPS)');
     });
 
+    describe('server start time', () => {
+        const startedAt = 1764320040000;
+
+        // react-intl builds a Date from the timestamp, which the suite-wide Date mock would replace with 2017-07-01
+        beforeEach(() => {
+            global.Date = RealDate;
+        });
+
+        test('should show when the server started under Hostname to a system admin', async () => {
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt});
+
+            renderAboutBuildModal({isSystemAdmin: true});
+
+            const started = await screen.findByTestId('aboutModalServerStarted');
+            const date = new Intl.DateTimeFormat('en', {year: 'numeric', month: 'short', day: '2-digit'}).format(startedAt);
+            const time = new Intl.DateTimeFormat('en', {hour: '2-digit', minute: '2-digit'}).format(startedAt);
+            expect(started.textContent).toBe(`Server started:\u00a0${date} - ${time}`);
+            expect(getServerStartTime).toHaveBeenCalledTimes(1);
+
+            const hostname = screen.getByText('Hostname:', {exact: false}).closest('div');
+            expect(hostname).toHaveTextContent('Hostname: mock.localhost');
+            expect(hostname?.nextElementSibling).toBe(started);
+        });
+
+        test('should not ask for or show when the server started to a user who is not a system admin', async () => {
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt});
+
+            renderAboutBuildModal({isSystemAdmin: false});
+
+            await waitFor(() => expect(Client4.getLicenseLoadMetric).toHaveBeenCalled());
+            expect(getServerStartTime).not.toHaveBeenCalled();
+            expect(screen.queryByTestId('aboutModalServerStarted')).not.toBeInTheDocument();
+            expect(screen.queryByText('Server started:', {exact: false})).not.toBeInTheDocument();
+            expect(screen.getByText('Hostname: mock.localhost', {exact: false})).toBeInTheDocument();
+            expect(screen.getByTestId('aboutModalVersionInfo')).toHaveTextContent('Server Version: 3.6.0');
+        });
+
+        test('should not ask for when the server started when isSystemAdmin is not given', async () => {
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockResolvedValue({started_at: startedAt});
+
+            renderAboutBuildModal();
+
+            await waitFor(() => expect(Client4.getLicenseLoadMetric).toHaveBeenCalled());
+            expect(getServerStartTime).not.toHaveBeenCalled();
+            expect(screen.queryByTestId('aboutModalServerStarted')).not.toBeInTheDocument();
+        });
+
+        test('should leave out the server start line and still render the dialog when the request fails', async () => {
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+            const getServerStartTime = jest.spyOn(Client4, 'getServerStartTime').mockRejectedValue(new Error('API error'));
+
+            renderAboutBuildModal({isSystemAdmin: true});
+
+            await waitFor(() => expect(getServerStartTime).toHaveBeenCalledTimes(1));
+            await waitFor(() => expect(console.error).toHaveBeenCalled());
+            expect(screen.queryByTestId('aboutModalServerStarted')).not.toBeInTheDocument();
+            expect(screen.queryByText('Server started:', {exact: false})).not.toBeInTheDocument();
+            expect(screen.getByTestId('aboutModalVersionInfo')).toHaveTextContent('Server Version: 3.6.0');
+            expect(screen.getByText('Hostname: mock.localhost', {exact: false})).toBeInTheDocument();
+        });
+    });
+
     function renderAboutBuildModal(props = {}) {
         const onExited = jest.fn();
         const show = true;
